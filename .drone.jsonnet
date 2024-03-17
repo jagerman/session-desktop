@@ -46,7 +46,13 @@ local debian_pipeline(name,
              'ls -l node_modules/libsession_util_nodejs/build',
              'ls -l node_modules/libsession_util_nodejs/build/Release',
              'yarn install --check-files',
+             // The yarn install below will wipe this out because it comes from a URL, but also
+             // doesn't actually rebuild it (because of `--ignore-scripts).  This is a nuisance: the
+             // build in the docker container should be fine (and if we *do* need to rebuild it, we
+             // deal with that separately below), so save it then move it back into place:
+             'mv node_modules/libsession_util_nodejs/build node_modules/libsession_util_nodejs/saved.build',
              'yarn install --frozen-lockfile --ignore-scripts',
+             'mv node_modules/libsession_util_nodejs/saved.build node_modules/libsession_util_nodejs/build',
              'pwd',
              'ls -l',
              'ls -l ..',
