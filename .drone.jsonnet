@@ -44,7 +44,7 @@ local debian_pipeline(name,
              'yarn patch-package',
              'eb_base=$(cat /session-deps/package.json | jq -r \'.devDependencies["electron-builder"]\')',
              'eb_curr=$(cat package.json | jq -r \'.devDependencies["electron-builder"]\')',
-             'if [ "$eb_base" != "$eb_curr" ]; then yarn electron-builder install-app-deps; else echo "EB: $eb_base $eb_curr"; fi',
+             'if [ "$eb_base" != "$eb_curr" ]; then yarn electron-builder install-app-deps; fi',
            ] + ['yarn ' + t for t in targets],
          }] +
          (if upload then [upload_step(image)] else []),
