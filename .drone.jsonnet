@@ -9,7 +9,7 @@ local upload_step(image='') = {
   [if image != '' then 'image']: image,
   commands: [
     'ls -l release',
-    './build/drone-upload.sh',
+    './tools/ci/drone-upload.sh',
   ],
   environment: { SSH_KEY: { from_secret: 'SSH_KEY' } },
 };
@@ -45,7 +45,10 @@ local debian_pipeline(name,
 
 [
   debian_pipeline('Lint & Tests', docker_image, ['grunt', 'lint-full', 'test'], upload=false),
-  debian_pipeline('Linux (amd64)', docker_image, ['build-release:linux']),
+  debian_pipeline('Linux deb (amd64)', docker_image, ['build-release:linux-deb']),
+  debian_pipeline('Linux rpm (amd64)', docker_image, ['build-release:linux-rpm']),
+  debian_pipeline('Linux freebsd (amd64)', docker_image, ['build-release:linux-freebsd']),
+  debian_pipeline('Linux AppImage (amd64)', docker_image, ['build-release:linux-appimage']),
   //debian_pipeline('Windows (x64)', docker_image, ['win32']),
   //debian_pipeline('Linux (ARM64)', docker_image, ['deb'], arch='arm64'),
 

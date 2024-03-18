@@ -27,10 +27,18 @@ upload_to="oxen.rocks/${DRONE_REPO// /_}/${DRONE_TAG:-${DRONE_BRANCH:-unknown}-$
 
 # FIXME: conflict between amd64/arm64 builds latest.yml?
 
+shopt -s nullglob
+
 files=(release/session-desktop-* release/latest*.yml)
 final_names=()
 
 puts=""
+if [ "${#files[@]}" -eq 0 ]; then
+    echo 'Found no suitable release/* files!' >&2
+    ls -l release/
+    exit 1
+fi
+
 for f in "${files[@]}"; do
     if [[ $f =~ (.*)\.((exe|rpm|deb|AppImage|zip|dmg|yml|freebsd).*) ]]; then
         # If this is *not* a tagged build then rename all the release files to append the commit
