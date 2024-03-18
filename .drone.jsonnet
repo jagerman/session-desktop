@@ -2,6 +2,9 @@ local default_deps = 'npm yarn';
 local default_windows_deps = 'zip nsis npm yarn';
 local docker_image = 'registry.oxen.rocks/session-desktop-builder-unstable';
 
+local playwright_repo = 'https://github.com/burtonemily/session-playwright.git';
+local playwright_branch = 'disappearing-messages';
+
 local apt_get_quiet = 'apt-get -o=Dpkg::Use-Pty=0 -q';
 
 local upload_step(image='') = {
@@ -15,13 +18,13 @@ local upload_step(image='') = {
 };
 
 local debian_pipeline(name,
-                      image,
                       targets,
                       arch='amd64',
                       image=docker_image,
                       deps=default_deps,
                       upload=true,
-                      allow_fail=false) = {
+                      allow_fail=false,
+                      extra_steps=[]) = {
   kind: 'pipeline',
   type: 'docker',
   name: name,
@@ -39,18 +42,39 @@ local debian_pipeline(name,
              './tools/ci/install-deps.sh',
            ] + ['yarn ' + t for t in targets],
          }] +
-         (if upload then [upload_step(image)] else []),
+         (if upload then [upload_step(image)] else []) +
+         extra_steps,
 };
+
+local playwright(shards=9, image=docker_image) = [{
+  name: 'Playwright build',
+  depends_on: 'Build',
+  image: image,
+  commands: [
+    'git clone ' + playwright_repo + ' -b ' + playwright_branch + ' session-playwright',
+    'cd session-playwright',
+    'yarn install --frozen',
+  ],
+}] + [
+  {
+    name: 'shard ' + i + '/' + shards,
+    depends_on: 'Playwright build',
+    image: image,
+    commands: ['time xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards],
+  }
+  for i in std.range(1, shards)
+];
 
 
 [
-  debian_pipeline('Lint & Tests', docker_image, ['grunt', 'lint-full', 'test'], upload=false),
-  debian_pipeline('Linux deb (amd64)', docker_image, ['build-release:linux-deb']),
-  debian_pipeline('Linux rpm (amd64)', docker_image, ['build-release:linux-rpm']),
-  debian_pipeline('Linux freebsd (amd64)', docker_image, ['build-release:linux-freebsd']),
-  debian_pipeline('Linux AppImage (amd64)', docker_image, ['build-release:linux-appimage']),
-  //debian_pipeline('Windows (x64)', docker_image, ['win32']),
-  //debian_pipeline('Linux (ARM64)', docker_image, ['deb'], arch='arm64'),
+  //debian_pipeline('Lint & Tests', ['grunt', 'lint-full', 'test'], upload=false),
+  debian_pipeline('Linux deb (amd64)', ['build-release:linux-deb']),
+  debian_pipeline('Linux rpm (amd64)', ['build-release:linux-rpm']),
+  debian_pipeline('Linux freebsd (amd64)', ['build-release:linux-freebsd']),
+  debian_pipeline('Linux AppImage (amd64)', ['build-release:linux-appimage']),
+  debian_pipeline('Playwright', ['build-everything'], extra_steps=playwright()),
+  //debian_pipeline('Windows (x64)', ['win32']),
+  //debian_pipeline('Linux (ARM64)', ['deb'], arch='arm64'),
 
   /*
     {  // MacOS:
