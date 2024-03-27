@@ -1,5 +1,4 @@
-local default_deps = 'npm yarn';
-local default_windows_deps = 'zip nsis npm yarn';
+local windows_deps = 'zip nsis npm yarn';
 local docker_image = 'registry.oxen.rocks/session-desktop-builder-unstable';
 
 local playwright_repo = 'https://github.com/burtonemily/session-playwright.git';
@@ -7,8 +6,9 @@ local playwright_branch = 'disappearing-messages';
 
 local apt_get_quiet = 'apt-get -o=Dpkg::Use-Pty=0 -q';
 
-local upload_step(image='') = {
+local upload_step(image='', extra_deps=[]) = {
   name: 'Upload',
+  depends_on: ['Build'] + extra_deps,
   [if image != '' then 'image']: image,
   commands: [
     'ls -l release',
@@ -21,7 +21,6 @@ local debian_pipeline(name,
                       targets,
                       arch='amd64',
                       image=docker_image,
-                      deps=default_deps,
                       upload=true,
                       allow_fail=false,
                       extra_steps=[]) = {
@@ -48,7 +47,7 @@ local debian_pipeline(name,
 
 local playwright(shards=9, image=docker_image) = [{
   name: 'Playwright build',
-  depends_on: 'Build',
+  depends_on: ['Build'],
   image: image,
   commands: [
     'git clone ' + playwright_repo + ' -b ' + playwright_branch + ' session-playwright',
@@ -58,9 +57,12 @@ local playwright(shards=9, image=docker_image) = [{
 }] + [
   {
     name: 'shard ' + i + '/' + shards,
-    depends_on: 'Playwright build',
+    depends_on: ['Playwright build'],
     image: image,
-    commands: ['time xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards],
+    commands: [
+      apt_get_quiet + ' install -y xvfb',
+      'xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards,
+    ],
   }
   for i in std.range(1, shards)
 ];
@@ -72,7 +74,7 @@ local playwright(shards=9, image=docker_image) = [{
   debian_pipeline('Linux rpm (amd64)', ['build-release:linux-rpm']),
   debian_pipeline('Linux freebsd (amd64)', ['build-release:linux-freebsd']),
   debian_pipeline('Linux AppImage (amd64)', ['build-release:linux-appimage']),
-  debian_pipeline('Playwright', ['build-everything'], extra_steps=playwright()),
+  debian_pipeline('Playwright', ['build-everything'], extra_steps=playwright(), upload=false),
   //debian_pipeline('Windows (x64)', ['win32']),
   //debian_pipeline('Linux (ARM64)', ['deb'], arch='arm64'),
 
