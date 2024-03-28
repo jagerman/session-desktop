@@ -299,6 +299,7 @@
       "ts/**/*.js",
       "ts/*.js",
       "!dist/**",
+      "!session-playwright/**",
       "stylesheets/dist/*",
       "!js/register.js",
       "preload.js",

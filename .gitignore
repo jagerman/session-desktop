@@ -38,7 +38,7 @@ yarn-error.log
 .vscode/
 .vscrof/
 
-
+/session-playwright
 playwright.config.js
 *.js.map
 ts/node/**/*.d.ts

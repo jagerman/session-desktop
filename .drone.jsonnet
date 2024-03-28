@@ -49,6 +49,7 @@ local playwright(shards=9, image=docker_image) = [{
   name: 'Playwright build',
   depends_on: ['Build'],
   image: image,
+  environment: { FORCE_COLOR: '1' },
   commands: [
     'git clone ' + playwright_repo + ' -b ' + playwright_branch + ' session-playwright',
     'cd session-playwright',
@@ -60,7 +61,9 @@ local playwright(shards=9, image=docker_image) = [{
     depends_on: ['Playwright build'],
     image: image,
     commands: [
-      apt_get_quiet + ' install -y xvfb',
+      apt_get_quiet + ' install -y xvfb xauth',
+      'cd session-playwright',
+      'export SESSION_DESKTOP_ROOT=$${DRONE_WORKSPACE}',
       'xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards,
     ],
   }
@@ -70,11 +73,11 @@ local playwright(shards=9, image=docker_image) = [{
 
 [
   //debian_pipeline('Lint & Tests', ['grunt', 'lint-full', 'test'], upload=false),
+  debian_pipeline('Playwright', ['build-everything'], extra_steps=playwright(), upload=false),
   debian_pipeline('Linux deb (amd64)', ['build-release:linux-deb']),
   debian_pipeline('Linux rpm (amd64)', ['build-release:linux-rpm']),
   debian_pipeline('Linux freebsd (amd64)', ['build-release:linux-freebsd']),
   debian_pipeline('Linux AppImage (amd64)', ['build-release:linux-appimage']),
-  debian_pipeline('Playwright', ['build-everything'], extra_steps=playwright(), upload=false),
   //debian_pipeline('Windows (x64)', ['win32']),
   //debian_pipeline('Linux (ARM64)', ['deb'], arch='arm64'),
 
