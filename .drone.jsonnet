@@ -73,7 +73,7 @@ local playwright(shards=9, image=docker_image) = [{
 
 [
   //debian_pipeline('Lint & Tests', ['grunt', 'lint-full', 'test'], upload=false),
-  debian_pipeline('Playwright', ['build-everything'], extra_steps=playwright(), upload=false),
+  debian_pipeline('Playwright', ['build-release-unpacked'], extra_steps=playwright(), upload=false),
   debian_pipeline('Linux deb (amd64)', ['build-release:linux-deb']),
   debian_pipeline('Linux rpm (amd64)', ['build-release:linux-rpm']),
   debian_pipeline('Linux freebsd (amd64)', ['build-release:linux-freebsd']),
