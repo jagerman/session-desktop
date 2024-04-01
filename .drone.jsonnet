@@ -34,6 +34,8 @@ local debian_pipeline(name,
            environment: {
              FORCE_COLOR: 'true',
              WINEDEBUG: '-all',
+             ELECTRON_CACHE: '/cache/electron',
+             ELECTRON_BUILDER_CACHE: '/cache/electron-builder',
            },
            [if allow_fail then 'failure']: 'ignore',
            commands: [
