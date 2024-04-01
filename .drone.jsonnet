@@ -47,7 +47,7 @@ local debian_pipeline(name,
          extra_steps,
 };
 
-local playwright(shards=9, image=docker_image) = [{
+local playwright(shards=9, image=std.strReplace(docker_image, '-builder-', '-playwright-')) = [{
   name: 'Playwright build',
   depends_on: ['Build'],
   image: image,
@@ -63,7 +63,6 @@ local playwright(shards=9, image=docker_image) = [{
     depends_on: ['Playwright build'],
     image: image,
     commands: [
-      apt_get_quiet + ' install -y xvfb xauth',
       'cd session-playwright',
       'export SESSION_DESKTOP_ROOT=$${DRONE_WORKSPACE}',
       'xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards,
