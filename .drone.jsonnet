@@ -3,6 +3,7 @@ local docker_image = 'registry.oxen.rocks/session-desktop-builder-unstable';
 
 local playwright_repo = 'https://github.com/burtonemily/session-playwright.git';
 local playwright_branch = 'disappearing-messages';
+local playwright_image = std.strReplace(docker_image, '-builder-', '-playwright-');
 
 local apt_get_quiet = 'apt-get -o=Dpkg::Use-Pty=0 -q';
 
@@ -47,34 +48,42 @@ local debian_pipeline(name,
          extra_steps,
 };
 
-local playwright(shards=9, image=std.strReplace(docker_image, '-builder-', '-playwright-')) = [{
-  name: 'Playwright build',
-  depends_on: ['Build'],
-  image: image,
-  environment: { FORCE_COLOR: '1' },
-  commands: [
-    'git clone ' + playwright_repo + ' -b ' + playwright_branch + ' session-playwright',
-    'cd session-playwright',
-    'yarn install --frozen',
-  ],
-}] + [
-  {
-    name: 'shard ' + i + '/' + shards,
-    depends_on: ['Playwright build'],
-    image: image,
-    commands: [
-      'cd session-playwright',
-      'export SESSION_DESKTOP_ROOT=$${DRONE_WORKSPACE}',
-      'xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards,
-    ],
-  }
-  for i in std.range(1, shards)
-];
+local playwright(name,
+                 shards,
+                 targets=['build-release-unpacked'],
+                 arch='amd64',
+                 image=playwright_image,
+                 allow_fail=false) =
+  debian_pipeline(
+    name, targets, arch=arch, image=image, upload=false, allow_fail=allow_fail, extra_steps=[{
+      name: 'Playwright build',
+      depends_on: ['Build'],
+      image: image,
+      environment: { FORCE_COLOR: '1' },
+      commands: [
+        'git clone ' + playwright_repo + ' -b ' + playwright_branch + ' session-playwright',
+        'cd session-playwright',
+        'yarn install --frozen',
+      ],
+    }] + [
+      {
+        name: 'shard ' + i + '/' + shards,
+        depends_on: ['Playwright build'],
+        image: image,
+        commands: [
+          'cd session-playwright',
+          'export SESSION_DESKTOP_ROOT=$${DRONE_WORKSPACE}',
+          'xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards,
+        ],
+      }
+      for i in std.range(1, shards)
+    ]
+  );
 
 
 [
   //debian_pipeline('Lint & Tests', ['grunt', 'lint-full', 'test'], upload=false),
-  debian_pipeline('Playwright', ['build-release-unpacked'], extra_steps=playwright(), upload=false),
+  playwright('Playwright', shards=9),
   debian_pipeline('Linux deb (amd64)', ['build-release:linux-deb']),
   debian_pipeline('Linux rpm (amd64)', ['build-release:linux-rpm']),
   debian_pipeline('Linux freebsd (amd64)', ['build-release:linux-freebsd']),
