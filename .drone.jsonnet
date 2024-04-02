@@ -66,6 +66,7 @@ local playwright(name,
         image: image,
         environment: { FORCE_COLOR: '1', DEBUG: 'pw:browser*' },
         commands: [
+          'find release',  // DEBUG FIXME
           'cd session-playwright',
           'export SESSION_DESKTOP_ROOT=$${DRONE_WORKSPACE}',
           'xvfb-run --auto-servernum yarn test --shard=' + i + '/' + shards,
