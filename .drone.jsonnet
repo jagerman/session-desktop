@@ -24,6 +24,7 @@ local debian_pipeline(name,
                       image=docker_image,
                       upload=true,
                       allow_fail=false,
+                      extra_build_commands=[],
                       extra_steps=[]) = {
   kind: 'pipeline',
   type: 'docker',
@@ -42,7 +43,7 @@ local debian_pipeline(name,
            commands: [
              'echo "Building on ${DRONE_STAGE_MACHINE}"',
              './tools/ci/install-deps.sh',
-           ] + ['yarn ' + t for t in targets],
+           ] + ['yarn ' + t for t in targets] + extra_build_commands,
          }] +
          (if upload then [upload_step(image)] else []) +
          extra_steps,
@@ -50,24 +51,18 @@ local debian_pipeline(name,
 
 local playwright(name,
                  shards,
-                 targets=['build-release-unpacked'],
                  arch='amd64',
                  image=playwright_image,
                  allow_fail=false) =
   debian_pipeline(
-    name, targets, arch=arch, image=image, upload=false, allow_fail=allow_fail, extra_steps=[{
-      name: 'Playwright build',
-      depends_on: ['Build'],
-      image: image,
-      commands: [
-        'git clone ' + playwright_repo + ' -b ' + playwright_branch + ' session-playwright',
-        'cd session-playwright',
-        'yarn install --frozen',
-      ],
-    }] + [
+    name, ['build-release-unpacked'], arch=arch, image=image, upload=false, allow_fail=allow_fail, extra_build_commands=[
+      'git clone ' + playwright_repo + ' -b ' + playwright_branch + ' session-playwright',
+      'cd session-playwright',
+      'yarn install --frozen',
+    ], extra_steps=[
       {
-        name: 'shard ' + i + '/' + shards,
-        depends_on: ['Playwright build'],
+        name: 'Playwright ' + i + '/' + shards,
+        depends_on: ['Build'],
         image: image,
         environment: { FORCE_COLOR: '1', DEBUG: 'pw:browser*' },
         commands: [
