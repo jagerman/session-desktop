@@ -1,8 +1,8 @@
 local windows_deps = 'zip nsis npm yarn';
 local docker_image = 'registry.oxen.rocks/session-desktop-builder-unstable';
 
-local playwright_repo = 'https://github.com/burtonemily/session-playwright.git';
-local playwright_branch = 'disappearing-messages';
+local playwright_repo = 'https://github.com/jagerman/session-playwright.git';
+local playwright_branch = 'emily-dis-mess';
 local playwright_image = std.strReplace(docker_image, '-builder-', '-playwright-');
 
 local apt_get_quiet = 'apt-get -o=Dpkg::Use-Pty=0 -q';
