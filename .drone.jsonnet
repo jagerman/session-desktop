@@ -69,7 +69,7 @@ local playwright(name,
         name: 'shard ' + i + '/' + shards,
         depends_on: ['Playwright build'],
         image: image,
-        environment: { FORCE_COLOR: '1' },
+        environment: { FORCE_COLOR: '1', DEBUG: 'pw:browser*' },
         commands: [
           'cd session-playwright',
           'export SESSION_DESKTOP_ROOT=$${DRONE_WORKSPACE}',
